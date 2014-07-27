@@ -1,3 +1,8 @@
+---
+output:
+  html_document:
+    keep_md: yes
+---
 # Exercise Quality Prediction
 
 restrictions: 2k words, 5 figures, gh-pages, compiled html version if DL the repo
@@ -10,19 +15,11 @@ This document describe the model I developed to predict the "classe" of how each
 
 The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. The training data for this project are available here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv. The test data are available here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
 
-
-```r
+```{r,echo=TRUE}
 #setwd("/Users/yakich/vrygit/machine-learning")
 
 library(lattice)
 library(caret)
-```
-
-```
-## Loading required package: ggplot2
-```
-
-```r
 library(gtools)
 
 #download data
@@ -65,28 +62,13 @@ training = training[, which(as.numeric(colSums(is.na(training)))==FALSE)]
 ```
 
 Find highly correlated variables:  
-
-```r
+```{r,echo=TRUE}
 nzv = nearZeroVar(training[,8:59],saveMetrics=T)
 nzv[nzv$percentUnique < 1,]
 ```
 
-```
-##                      freqRatio percentUnique zeroVar   nzv
-## total_accel_belt         1.063        0.1478   FALSE FALSE
-## gyros_belt_x             1.059        0.7135   FALSE FALSE
-## gyros_belt_y             1.144        0.3516   FALSE FALSE
-## gyros_belt_z             1.066        0.8613   FALSE FALSE
-## accel_belt_x             1.055        0.8358   FALSE FALSE
-## accel_belt_y             1.114        0.7288   FALSE FALSE
-## total_accel_arm          1.025        0.3364   FALSE FALSE
-## total_accel_dumbbell     1.073        0.2191   FALSE FALSE
-## total_accel_forearm      1.129        0.3567   FALSE FALSE
-```
-
 Results seem to suggests getting rid of total_* predictors, which makes sense as these are likely derived values.  
-
-```r
+```{r,echo=TRUE}
 dropcols = grepl("total",colnames(training))
 training = training[, dropcols == FALSE]
 validation = validation[, dropcols == FALSE]
@@ -95,8 +77,7 @@ validation = validation[, dropcols == FALSE]
 ## Create Random Forest model
 Other models were attempted with cross validation within the testing set, but RF seems best. Now creating a Random Forest model with 4 folds on a random set of 4 out of the 6 users in the training set.  
 
-
-```r
+```{r,echo=TRUE}
 #initialize model results (there must be a more elegant way)
 results = data.frame(user_combo = 0,num_folds = 0, method = "rf",
             users = paste(0,0,0,0),
@@ -127,21 +108,7 @@ subtest.user.index = combinations(numtrainusers,round(numtrainusers*.3))
         
         mod = train(classe~., data = train.sub, method="rf",
                     trControl = trainControl(method="cv"),number=j)
-```
-
-```
-## Loading required package: randomForest
-## randomForest 4.6-10
-## Type rfNews() to see new features/changes/bug fixes.
-## 
-## Attaching package: 'e1071'
-## 
-## The following object is masked from 'package:gtools':
-## 
-##     permutations
-```
-
-```r
+        
         in.pred = predict(mod,train.sub)
         out.pred = predict(mod,newdata = test.sub)
 
@@ -162,54 +129,24 @@ subtest.user.index = combinations(numtrainusers,round(numtrainusers*.3))
 print(results[2:dim(results)[1],])
 ```
 
-```
-##   user_combo num_folds method                         users in.accuracy
-## 2          6         4     rf carlitos pedro adelmo charles           1
-##   out.accuracy
-## 2            1
-```
-
 ## Examine error (confusion matrix)
 In sample error is zero!
 This describes how well the model predicts within the training set of the random 4 users.
-
-```r
+```{r,echo=TRUE}
     confusionMatrix(in.pred,train.sub$classe)$table
-```
-
-```
-##           Reference
-## Prediction    A    B    C    D    E
-##          A 5579    0    0    0    0
-##          B    0 3797    0    0    0
-##          C    0    0 3422    0    0
-##          D    0    0    0 3216    0
-##          E    0    0    0    0 3607
 ```
 
 Out of sample error is zero!  
 This describes how well the model predicts for the other 2 users.
-
-```r
+```{r,echo=TRUE}
     confusionMatrix(out.pred,test.sub$classe)$table
-```
-
-```
-##           Reference
-## Prediction    A    B    C    D    E
-##          A 1733    0    0    0    0
-##          B    0 1435    0    0    0
-##          C    0    0 1032    0    0
-##          D    0    0    0 1128    0
-##          E    0    0    0    0 1320
 ```
 
 looks perfect, now to try it on the validation set (once-and-only-once) to answer and submit
 
 ## Predict answers for the 20 problems
 
-
-```r
+```{r,echo=TRUE}
 validation.sub = validation[,c(5,7:56)]
 answers = data.frame(problem_id = 1:20,pred = NA)
 for(i in 1:20){
@@ -219,33 +156,8 @@ for(i in 1:20){
 print(answers)
 ```
 
-```
-##    problem_id pred
-## 1           1    B
-## 2           2    A
-## 3           3    B
-## 4           4    A
-## 5           5    A
-## 6           6    E
-## 7           7    D
-## 8           8    B
-## 9           9    A
-## 10         10    A
-## 11         11    B
-## 12         12    C
-## 13         13    B
-## 14         14    A
-## 15         15    E
-## 16         16    E
-## 17         17    A
-## 18         18    B
-## 19         19    B
-## 20         20    B
-```
-
 ## Write answers to files  
-
-```r
+```{r,echo=TRUE}
 pml_write_files = function(x,outdir){
   n = length(x)
   for(i in 1:n){
